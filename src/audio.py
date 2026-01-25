@@ -7,11 +7,20 @@ class AudioManager:
     """Generates and plays procedural audio."""
     
     def __init__(self):
-        pygame.mixer.init(frequency=22050, size=-16, channels=1, buffer=512)
-        self.sample_rate = 22050
+        self.audio_available = True
+        try:
+            pygame.mixer.init(frequency=22050, size=-16, channels=1, buffer=512)
+            self.sample_rate = 22050
+        except pygame.error:
+            # Audio not available (e.g., headless environment)
+            self.audio_available = False
+            self.sample_rate = 22050
         
     def play_collection_sound(self):
         """Play the collection sound effect."""
+        if not self.audio_available:
+            return
+            
         duration = 0.15  # 150ms
         frequency = 800  # Hz
         
@@ -42,4 +51,5 @@ class AudioManager:
     
     def cleanup(self):
         """Clean up audio resources."""
-        pygame.mixer.quit()
+        if self.audio_available:
+            pygame.mixer.quit()
