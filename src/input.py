@@ -1,6 +1,5 @@
 """Keyboard handling for parameter adjustments."""
 import pygame
-import time
 
 
 class InputHandler:
@@ -8,42 +7,50 @@ class InputHandler:
     
     def __init__(self, swipe_processor):
         self.swipe_processor = swipe_processor
-        
-        # Rate limiting: 0.5 seconds between changes
-        self.last_change_time = 0
-        self.change_cooldown = 0.5
+        self.last_update_time = 0
+        self.update_interval = 100  # milliseconds (0.1 seconds = 10 per second)
     
     def handle_event(self, event):
         """Process keyboard events."""
-        if event.type != pygame.KEYDOWN:
+        # This is now just for compatibility, actual handling is in update()
+        pass
+    
+    def update(self):
+        """Update parameter values based on held keys."""
+        current_time = pygame.time.get_ticks()
+        
+        # Check if enough time has passed since last update
+        if current_time - self.last_update_time < self.update_interval:
             return
         
-        current_time = time.time()
-        if current_time - self.last_change_time < self.change_cooldown:
-            return  # Rate limited
-        
+        keys = pygame.key.get_pressed()
         params = self.swipe_processor.get_parameters()
+        changed = False
         
         # Strength controls: Q/A
-        if event.key == pygame.K_q:
+        if keys[pygame.K_q]:
             self.swipe_processor.set_parameter('strength', params['strength'] + 1)
-            self.last_change_time = current_time
-        elif event.key == pygame.K_a:
+            changed = True
+        elif keys[pygame.K_a]:
             self.swipe_processor.set_parameter('strength', params['strength'] - 1)
-            self.last_change_time = current_time
+            changed = True
         
         # Focus controls: W/S
-        elif event.key == pygame.K_w:
+        if keys[pygame.K_w]:
             self.swipe_processor.set_parameter('focus', params['focus'] + 1)
-            self.last_change_time = current_time
-        elif event.key == pygame.K_s:
+            changed = True
+        elif keys[pygame.K_s]:
             self.swipe_processor.set_parameter('focus', params['focus'] - 1)
-            self.last_change_time = current_time
+            changed = True
         
         # Smoothness controls: E/D
-        elif event.key == pygame.K_e:
+        if keys[pygame.K_e]:
             self.swipe_processor.set_parameter('smoothness', params['smoothness'] + 1)
-            self.last_change_time = current_time
-        elif event.key == pygame.K_d:
+            changed = True
+        elif keys[pygame.K_d]:
             self.swipe_processor.set_parameter('smoothness', params['smoothness'] - 1)
-            self.last_change_time = current_time
+            changed = True
+        
+        # Update timer only if a key was pressed
+        if changed:
+            self.last_update_time = current_time

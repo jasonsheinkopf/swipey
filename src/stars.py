@@ -32,7 +32,7 @@ class Starfield:
         for _ in range(star_count):
             x = random.randint(0, screen_width)
             y = random.randint(0, screen_height)
-            size = random.randint(1, 3)
+            size = random.randint(1, 2)  # Limit max size to 2
             period = random.uniform(2000, 6000)  # 2-6 seconds
             self.stars.append(Star(x, y, size, period))
     

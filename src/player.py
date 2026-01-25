@@ -20,7 +20,7 @@ class Player:
         self.vx = 0.0
         self.vy = 0.0
         
-        self.color = (255, 255, 255)  # Pure white
+        self.color = (100, 150, 255)  # Blue
     
     def apply_impulse(self, dx, dy):
         """Add velocity from a swipe."""
@@ -50,3 +50,10 @@ class Player:
     def get_position(self):
         """Return current position as tuple."""
         return (self.x, self.y)
+    
+    def reset(self):
+        """Reset player to center with zero velocity."""
+        self.x = self.screen_width / 2
+        self.y = self.screen_height / 2
+        self.vx = 0.0
+        self.vy = 0.0

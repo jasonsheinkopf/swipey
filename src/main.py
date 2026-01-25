@@ -1,11 +1,17 @@
 """Entry point and game loop for Drift."""
 import pygame
 import sys
+import argparse
 from game import Game
 
 
 def main():
     """Main entry point."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Swipey - The parameter optimization simulator')
+    parser.add_argument('--dev', action='store_true', help='Development mode (10 second rounds)')
+    args = parser.parse_args()
+    
     # Initialize Pygame
     pygame.init()
     
@@ -20,7 +26,7 @@ def main():
     fps = 60
     
     # Create game
-    game = Game(screen_width, screen_height)
+    game = Game(screen_width, screen_height, dev_mode=args.dev)
     
     # Game loop
     running = True

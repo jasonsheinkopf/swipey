@@ -6,14 +6,16 @@ class SwipeProcessor:
     """Processes swipe input through Focus, Smoothness, and Strength filters."""
     
     def __init__(self):
-        # Parameters range from 1-10
+        # Parameters range from 0-10
         self.strength = 5
-        self.focus = 5
         self.smoothness = 5
         
         # Swipe data
         self.points = []
         self.is_swiping = False
+        
+        # Store the focus start index after processing
+        self.last_focus_start_index = 0
         
     def start_swipe(self, x, y):
         """Begin capturing a swipe."""
@@ -29,12 +31,14 @@ class SwipeProcessor:
         """Complete the swipe and calculate impulse."""
         if not self.is_swiping or len(self.points) < 2:
             self.is_swiping = False
+            self.last_focus_start_index = 0
             return (0, 0)
         
         self.is_swiping = False
         
         # Step 1: Focus Filter - select portion of swipe
-        focused_points = self._apply_focus()
+        focused_points, focus_start_index = self._apply_focus()
+        self.last_focus_start_index = focus_start_index
         
         if len(focused_points) < 2:
             return (0, 0)
@@ -48,23 +52,25 @@ class SwipeProcessor:
         return impulse
     
     def _apply_focus(self):
-        """Select which portion of the swipe to use based on focus parameter."""
+        """Select which portion of the swipe to use based on focus parameter.
+        Returns (focused_points, start_index_in_original)."""
         if len(self.points) < 2:
-            return self.points
+            return self.points, 0
         
-        # Focus 1 = last 10% of swipe
+        # Focus 0 = last 10% of swipe
         # Focus 10 = entire swipe (100%)
-        portion = 0.1 + (self.focus - 1) * 0.1  # 0.1 to 1.0
+        portion = 0.1 + (self.focus / 10) * 0.9  # 0.1 to 1.0
         
         count = max(2, int(len(self.points) * portion))
-        return self.points[-count:]
+        start_index = len(self.points) - count
+        return self.points[-count:], start_index
     
     def _apply_smoothness(self, points):
         """Average direction vectors based on smoothness parameter."""
         if len(points) < 2:
             return (0, 0)
         
-        # Smoothness 1 = only last segment
+        # Smoothness 0 = only last segment
         # Smoothness 10 = average all segments
         segments_to_use = max(1, int((len(points) - 1) * (self.smoothness / 10)))
         
@@ -99,23 +105,25 @@ class SwipeProcessor:
         """Scale the magnitude based on strength parameter."""
         dx, dy = direction
         
-        # Strength 1 = 0.1x multiplier (gentle nudge)
+        # Strength 0 = 0.1x multiplier (gentle nudge)
         # Strength 10 = 1.0x multiplier (powerful thrust)
-        multiplier = 0.1 + (self.strength - 1) * 0.1
+        multiplier = 0.1 + (self.strength / 10) * 0.9
         
         # Scale for 60 FPS and pixel/second velocity
-        scale = 0.01 * multiplier
+        scale = 1.0 * multiplier
         
         return (dx * scale, dy * scale)
     
+    def get_focus_start_index(self):
+        """Return the start index of the focused portion from the last swipe."""
+        return self.last_focus_start_index
+    
     def set_parameter(self, param_name, value):
-        """Set a parameter value (1-10)."""
-        value = max(1, min(10, value))
+        """Set a parameter value (0-10)."""
+        value = max(0, min(10, value))
         
         if param_name == 'strength':
             self.strength = value
-        elif param_name == 'focus':
-            self.focus = value
         elif param_name == 'smoothness':
             self.smoothness = value
     
@@ -123,6 +131,5 @@ class SwipeProcessor:
         """Return current parameter values."""
         return {
             'strength': self.strength,
-            'focus': self.focus,
             'smoothness': self.smoothness
         }

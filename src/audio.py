@@ -45,6 +45,9 @@ class AudioManager:
         # Convert to 16-bit integer
         wave = (wave * 32767).astype(np.int16)
         
+        # Reshape to stereo (duplicate for left and right channels)
+        wave = np.column_stack((wave, wave))
+        
         # Create sound
         sound = pygame.sndarray.make_sound(wave)
         sound.play()
