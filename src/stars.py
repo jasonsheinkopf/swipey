@@ -1,5 +1,6 @@
 """Procedurally generated starfield background with twinkling animation."""
 import random
+import math
 import pygame
 
 
@@ -15,7 +16,6 @@ class Star:
         
     def get_opacity(self, time_ms):
         """Calculate opacity based on time (20% to 100%)."""
-        import math
         # Sine wave oscillation
         cycle = (time_ms / self.period + self.phase) % (2 * math.pi)
         # Map sine wave (-1 to 1) to opacity range (0.2 to 1.0)

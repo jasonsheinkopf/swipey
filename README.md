@@ -10,7 +10,7 @@ A meditative, physics-driven game where a lone sphere drifts through space. Use 
 
 - **Frictionless Physics**: Velocity persists indefinitely - every swipe matters
 - **Screen Wrapping**: Seamless edge wrapping creates an infinite space
-- **Procedural Audio**: All sounds generated at runtime using Web Audio
+- **Procedural Audio**: All sounds generated at runtime using pygame.mixer and NumPy
 - **Twinkling Starfield**: Procedurally animated background
 - **Configurable Swipe System**: Fine-tune your control with three parameters:
   - **Strength** (Q/A): Control impulse magnitude (1-10)
