@@ -335,7 +335,7 @@ let currentThrust = [0, 0];
 let thrustHistory = [];
 
 // --- Game state ---
-let gameState = 'title'; // 'title', 'playing', 'transition'
+let gameState = 'menu'; // 'menu', 'title', 'playing', 'transition'
 let score = 0;
 let level = 0;
 let levelTargetsCollected = 0;
@@ -344,6 +344,12 @@ let timeRemaining = 10;
 let roundDuration = 10;
 let titleStartTime = null;
 let lastFrameTime = 0;
+
+// --- Menu / game tracking ---
+let currentGame = null;
+let completedGames = { asteroid: false, maze: false, hairy: false };
+let menuButtons = [];
+let transitionEnteredAt = 0;
 
 // --- Transition buttons ---
 let transitionButtons = [];
@@ -487,6 +493,68 @@ function drawTitleScreen() {
   ctx.fillText('Drag anywhere to thrust', W / 2, H * 0.75);
 }
 
+function drawMenuScreen() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+
+  menuButtons = [];
+
+  const titleSize = Math.max(36, Math.floor(Math.min(W, H) * 0.1));
+  ctx.font = `bold ${titleSize}px sans-serif`;
+  ctx.fillStyle = 'rgb(100,150,255)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('SWIPEY', W / 2, H * 0.18);
+
+  const subSize = Math.max(16, Math.floor(Math.min(W, H) * 0.035));
+  ctx.font = `${subSize}px sans-serif`;
+  ctx.fillStyle = 'rgb(180,180,180)';
+  ctx.fillText('Select a game', W / 2, H * 0.28);
+
+  const games = [
+    { id: 'asteroid', label: 'ASTEROID', color: [100, 150, 255] },
+    { id: 'maze', label: 'MAZE', color: [100, 255, 150] },
+    { id: 'hairy', label: 'HAIRY', color: [255, 150, 100] }
+  ];
+
+  const btnW = Math.max(180, Math.floor(W * 0.6));
+  const btnH = Math.max(54, Math.floor(H * 0.08));
+  const gap = Math.max(16, Math.floor(H * 0.03));
+  const totalH = games.length * btnH + (games.length - 1) * gap;
+  const startY = H * 0.4 - totalH / 2 + H * 0.1;
+  const btnFontSize = Math.max(18, Math.floor(Math.min(W, H) * 0.04));
+
+  for (let i = 0; i < games.length; i++) {
+    const g = games[i];
+    const x = W / 2 - btnW / 2;
+    const y = startY + i * (btnH + gap);
+    const completed = completedGames[g.id];
+
+    if (completed) {
+      ctx.fillStyle = 'rgb(50,50,50)';
+      ctx.fillRect(x, y, btnW, btnH);
+      ctx.strokeStyle = 'rgb(80,80,80)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, btnW, btnH);
+      ctx.fillStyle = 'rgb(100,100,100)';
+      ctx.font = `bold ${btnFontSize}px sans-serif`;
+      ctx.fillText(g.label + ' \u2713', W / 2, y + btnH / 2);
+    } else {
+      ctx.fillStyle = `rgb(${g.color[0]},${g.color[1]},${g.color[2]})`;
+      ctx.globalAlpha = 0.2;
+      ctx.fillRect(x, y, btnW, btnH);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = `rgb(${g.color[0]},${g.color[1]},${g.color[2]})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, btnW, btnH);
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${btnFontSize}px sans-serif`;
+      ctx.fillText(g.label, W / 2, y + btnH / 2);
+      menuButtons.push({ x, y, w: btnW, h: btnH, game: g.id });
+    }
+  }
+}
+
 function drawTransitionScreen() {
   ctx.fillStyle = 'rgba(0,0,0,0.94)';
   ctx.fillRect(0, 0, W, H);
@@ -533,8 +601,7 @@ function drawTransitionScreen() {
 
     // Minus button (left)
     const mx = W / 2 - gap / 2 - btnW;
-    const minusEnabled = cv > 0;
-    ctx.fillStyle = minusEnabled ? 'rgb(150,50,50)' : 'rgb(80,30,30)';
+    ctx.fillStyle = 'rgb(150,50,50)';
     ctx.fillRect(mx, y, btnW, btnH);
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
@@ -544,12 +611,11 @@ function drawTransitionScreen() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(labels[pn][0], mx + btnW / 2, y + btnH / 2);
-    if (minusEnabled) transitionButtons.push({ x: mx, y, w: btnW, h: btnH, param: pn, delta: -1 });
+    transitionButtons.push({ x: mx, y, w: btnW, h: btnH, param: pn, delta: -1 });
 
     // Plus button (right)
     const px = W / 2 + gap / 2;
-    const plusEnabled = cv < 10;
-    ctx.fillStyle = plusEnabled ? 'rgb(50,150,50)' : 'rgb(30,80,30)';
+    ctx.fillStyle = 'rgb(50,150,50)';
     ctx.fillRect(px, y, btnW, btnH);
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
@@ -557,7 +623,7 @@ function drawTransitionScreen() {
     ctx.fillStyle = '#fff';
     ctx.font = `bold ${btnFontSize}px sans-serif`;
     ctx.fillText(labels[pn][1], px + btnW / 2, y + btnH / 2);
-    if (plusEnabled) transitionButtons.push({ x: px, y, w: btnW, h: btnH, param: pn, delta: +1 });
+    transitionButtons.push({ x: px, y, w: btnW, h: btnH, param: pn, delta: +1 });
 
     // Visuals - player ball + flame for strength
     const visRadius = Math.max(10, Math.floor(Math.min(W, H) * 0.025));
@@ -621,12 +687,38 @@ function drawTransitionScreen() {
     }
   }
 
-  // Instructions
-  const instrSize = Math.max(13, Math.floor(Math.min(W, H) * 0.025));
-  ctx.font = `${instrSize}px sans-serif`;
-  ctx.fillStyle = 'rgb(200,200,200)';
+  // Perfect and Quit buttons
+  const wideBtnW = btnW * 2 + gap;
+  const wideBtnH = btnH;
+  const wideBtnX = W / 2 - wideBtnW / 2;
+  const wideBtnGap = Math.max(12, Math.floor(H * 0.02));
+  const lastParamY = startY + (paramNames.length - 1) * rowH;
+  const perfectY = lastParamY + btnH + rowH * 0.5;
+
+  // Perfect button
+  ctx.fillStyle = 'rgb(50,120,200)';
+  ctx.fillRect(wideBtnX, perfectY, wideBtnW, wideBtnH);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(wideBtnX, perfectY, wideBtnW, wideBtnH);
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${btnFontSize}px sans-serif`;
   ctx.textAlign = 'center';
-  ctx.fillText('Tap a button to adjust and continue', W / 2, H * 0.88);
+  ctx.textBaseline = 'middle';
+  ctx.fillText('PERFECT', W / 2, perfectY + wideBtnH / 2);
+  transitionButtons.push({ x: wideBtnX, y: perfectY, w: wideBtnW, h: wideBtnH, action: 'perfect' });
+
+  // Quit button
+  const quitY = perfectY + wideBtnH + wideBtnGap;
+  ctx.fillStyle = 'rgb(100,50,50)';
+  ctx.fillRect(wideBtnX, quitY, wideBtnW, wideBtnH);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(wideBtnX, quitY, wideBtnW, wideBtnH);
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${btnFontSize}px sans-serif`;
+  ctx.fillText('QUIT', W / 2, quitY + wideBtnH / 2);
+  transitionButtons.push({ x: wideBtnX, y: quitY, w: wideBtnW, h: wideBtnH, action: 'quit' });
 }
 
 // --- Input handling ---
@@ -634,14 +726,45 @@ function handleTouchStart(e) {
   e.preventDefault();
   initAudio();
 
+  if (gameState === 'menu') {
+    const t = e.changedTouches[0];
+    const tx = t.clientX, ty = t.clientY;
+    for (const btn of menuButtons) {
+      if (tx >= btn.x && tx <= btn.x + btn.w && ty >= btn.y && ty <= btn.y + btn.h) {
+        currentGame = btn.game;
+        gameState = 'title';
+        titleStartTime = null;
+        score = 0;
+        level = 0;
+        params.strength = 5;
+        params.smoothness = 5;
+        player.reset();
+        initAsteroids();
+        collectible.spawn();
+        return;
+      }
+    }
+    return;
+  }
+
   if (gameState === 'title') return;
 
   if (gameState === 'transition') {
+    if (performance.now() - transitionEnteredAt < 500) return;
     const t = e.changedTouches[0];
     const tx = t.clientX, ty = t.clientY;
     for (const btn of transitionButtons) {
       if (tx >= btn.x && tx <= btn.x + btn.w && ty >= btn.y && ty <= btn.y + btn.h) {
-        params[btn.param] = Math.max(0, Math.min(10, params[btn.param] + btn.delta));
+        if (btn.action === 'perfect') {
+          completedGames[currentGame] = true;
+          gameState = 'menu';
+          return;
+        }
+        if (btn.action === 'quit') {
+          gameState = 'menu';
+          return;
+        }
+        params[btn.param] += btn.delta;
         startRound();
         return;
       }
@@ -712,13 +835,43 @@ let lastMouseX = 0, lastMouseY = 0;
 function handleMouseDown(e) {
   initAudio();
 
+  if (gameState === 'menu') {
+    const tx = e.clientX, ty = e.clientY;
+    for (const btn of menuButtons) {
+      if (tx >= btn.x && tx <= btn.x + btn.w && ty >= btn.y && ty <= btn.y + btn.h) {
+        currentGame = btn.game;
+        gameState = 'title';
+        titleStartTime = null;
+        score = 0;
+        level = 0;
+        params.strength = 5;
+        params.smoothness = 5;
+        player.reset();
+        initAsteroids();
+        collectible.spawn();
+        return;
+      }
+    }
+    return;
+  }
+
   if (gameState === 'title') return;
 
   if (gameState === 'transition') {
+    if (performance.now() - transitionEnteredAt < 500) return;
     const tx = e.clientX, ty = e.clientY;
     for (const btn of transitionButtons) {
       if (tx >= btn.x && tx <= btn.x + btn.w && ty >= btn.y && ty <= btn.y + btn.h) {
-        params[btn.param] = Math.max(0, Math.min(10, params[btn.param] + btn.delta));
+        if (btn.action === 'perfect') {
+          completedGames[currentGame] = true;
+          gameState = 'menu';
+          return;
+        }
+        if (btn.action === 'quit') {
+          gameState = 'menu';
+          return;
+        }
+        params[btn.param] += btn.delta;
         startRound();
         return;
       }
@@ -794,7 +947,7 @@ function initGame() {
   score = 0;
   level = 0;
   timeRemaining = roundDuration;
-  gameState = 'title';
+  gameState = 'menu';
   titleStartTime = null;
   lastFrameTime = performance.now();
 }
@@ -824,6 +977,7 @@ function gameLoop(now) {
     if (timeRemaining <= 0) {
       timeRemaining = 0;
       gameState = 'transition';
+      transitionEnteredAt = performance.now();
       level++;
       activeTouchId = null;
       mouseDown = false;
@@ -867,7 +1021,9 @@ function gameLoop(now) {
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
 
-  if (gameState === 'title') {
+  if (gameState === 'menu') {
+    drawMenuScreen();
+  } else if (gameState === 'title') {
     drawTitleScreen();
   } else if (gameState === 'transition') {
     drawTransitionScreen();
