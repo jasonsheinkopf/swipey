@@ -340,8 +340,8 @@ let score = 0;
 let level = 0;
 let levelTargetsCollected = 0;
 const targetsPerLevel = 5;
-let timeRemaining = 60;
-let roundDuration = 60;
+let timeRemaining = 10;
+let roundDuration = 10;
 let titleStartTime = null;
 let lastFrameTime = 0;
 
@@ -571,9 +571,9 @@ function drawTransitionScreen() {
       const fc1 = getFlameColors(2);
       ctx.fillStyle = `rgb(${fc1.outer[0]},${fc1.outer[1]},${fc1.outer[2]})`;
       ctx.beginPath();
-      ctx.moveTo(lvx - visRadius, visY - 4);
-      ctx.lineTo(lvx - visRadius, visY + 4);
-      ctx.lineTo(lvx - visRadius - 10, visY);
+      ctx.moveTo(lvx - visRadius, visY);
+      ctx.lineTo(lvx - visRadius - 10, visY - 4);
+      ctx.lineTo(lvx - visRadius - 10, visY + 4);
       ctx.closePath(); ctx.fill();
 
       // Right visual: big flame (strong)
@@ -583,9 +583,9 @@ function drawTransitionScreen() {
       const fc2 = getFlameColors(14);
       ctx.fillStyle = `rgb(${fc2.outer[0]},${fc2.outer[1]},${fc2.outer[2]})`;
       ctx.beginPath();
-      ctx.moveTo(rvx + visRadius, visY - 12);
-      ctx.lineTo(rvx + visRadius, visY + 12);
-      ctx.lineTo(rvx + visRadius + 40, visY);
+      ctx.moveTo(rvx + visRadius, visY);
+      ctx.lineTo(rvx + visRadius + 40, visY - 12);
+      ctx.lineTo(rvx + visRadius + 40, visY + 12);
       ctx.closePath(); ctx.fill();
     } else {
       // Smoothness: multiple scattered flames (rough) vs single flame (smooth)
@@ -614,9 +614,9 @@ function drawTransitionScreen() {
       const fc2 = getFlameColors(8);
       ctx.fillStyle = `rgb(${fc2.outer[0]},${fc2.outer[1]},${fc2.outer[2]})`;
       ctx.beginPath();
-      ctx.moveTo(rvx + visRadius, visY - 8);
-      ctx.lineTo(rvx + visRadius, visY + 8);
-      ctx.lineTo(rvx + visRadius + 25, visY);
+      ctx.moveTo(rvx + visRadius, visY);
+      ctx.lineTo(rvx + visRadius + 25, visY - 8);
+      ctx.lineTo(rvx + visRadius + 25, visY + 8);
       ctx.closePath(); ctx.fill();
     }
   }
